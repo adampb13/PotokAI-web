@@ -104,4 +104,14 @@ app.post('/reset', (req, res) => {
     res.send('Context reset.');
 });
 
+// Endpoint do zwracania informacji o serwerze
+app.get('/api/info', (req, res) => {
+    res.json({
+        model: config.model,
+        status: 'connected',
+        version: '1.0.0',
+        timestamp: new Date().toISOString()
+    });
+});
+
 app.listen(3000, '0.0.0.0', () => console.log("Serwer: http://localhost:3000"));
