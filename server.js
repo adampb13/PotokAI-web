@@ -5,6 +5,9 @@ const multer = require('multer');
 const fs = require('fs');
 const app = express();
 
+// Wczytujemy konfigurację z pliku
+const config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public')); // Tu będą pliki strony WWW
@@ -36,7 +39,7 @@ app.post('/chat', async (req, res) => {
             method: 'post',
             url: 'http://127.0.0.1:11434/api/generate',
             data: {
-                model: "huihui_ai/qwen2.5-coder-abliterate:14b",
+                model: config.model,
                 prompt: fullPrompt,
                 stream: true // KLUCZOWE: Włączamy strumień
             },
