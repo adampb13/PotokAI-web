@@ -41,7 +41,10 @@ app.post('/chat', async (req, res) => {
             data: {
                 model: config.model,
                 prompt: fullPrompt,
-                stream: true // KLUCZOWE: Włączamy strumień
+                stream: true, // KLUCZOWE: Włączamy strumień
+                options: {
+                    temperature: config.temperature || 0.7
+                }
             },
             responseType: 'stream' // Axios musi wiedzieć, że to strumień danych
         });
