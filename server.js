@@ -39,6 +39,115 @@ function createSession(name = null) {
 // Konfiguracja multer dla uploadu plików
 const upload = multer({ dest: 'uploads/' });
 
+// Funkcja do wyszukiwania w DuckDuckGo
+async function searchDuckDuckGo(query, maxResults = 5) {
+    try {
+        console.log('🔍 Szukam w DuckDuckGo:', query);
+        const response = await axios.get('https://api.duckduckgo.com/', {
+            params: {
+                q: query,
+                format: 'json',
+                no_html: 1,
+                skip_disambig: 1
+            },
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        });
+        
+        const results = [];
+        
+        // Pobierz wyniki z Abstract
+        if (response.data.AbstractText && response.data.AbstractText.trim()) {
+            console.log('✅ DuckDuckGo: znaleziono AbstractText');
+            results.push({
+                title: response.data.Heading || query,
+                snippet: response.data.AbstractText,
+                source: 'DuckDuckGo'
+            });
+        }
+        
+        // Pobierz wyniki z Results
+        if (response.data.Results && Array.isArray(response.data.Results) && response.data.Results.length > 0) {
+            console.log('✅ DuckDuckGo: znaleziono Results:', response.data.Results.length);
+            response.data.Results.slice(0, maxResults - results.length).forEach(result => {
+                if (result.Text) {
+                    results.push({
+                        title: result.Title || 'Wynik',
+                        snippet: result.Text,
+                        source: 'DuckDuckGo'
+                    });
+                }
+            });
+        }
+        
+        console.log(`✅ DuckDuckGo zwrócił ${results.length} wyników`);
+        return results;
+    } catch (error) {
+        console.error('❌ Błąd DuckDuckGo:', error.message);
+        return [];
+    }
+}
+
+// Funkcja do wyszukiwania w Wikipedia
+async function searchWikipedia(query, maxResults = 3) {
+    try {
+        console.log('📚 Szukam w Wikipedia:', query);
+        // Najpierw spróbuj polską Wikipedię
+        const response = await axios.get('https://pl.wikipedia.org/w/api.php', {
+            params: {
+                action: 'query',
+                list: 'search',
+                srsearch: query,
+                format: 'json',
+                srlimit: maxResults
+            },
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        });
+        
+        if (!response.data.query || !response.data.query.search || response.data.query.search.length === 0) {
+            console.log('📚 Polska Wikipedia nie zwróciła wyników, próbuję English...');
+            // Fallback na English Wikipedia jeśli brak wyników
+            const enResponse = await axios.get('https://en.wikipedia.org/w/api.php', {
+                params: {
+                    action: 'query',
+                    list: 'search',
+                    srsearch: query,
+                    format: 'json',
+                    srlimit: maxResults
+                },
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                }
+            });
+            if (!enResponse.data.query || !enResponse.data.query.search) {
+                return [];
+            }
+            const results = enResponse.data.query.search.map(item => ({
+                title: item.title,
+                snippet: item.snippet.replace(/<\/?[^>]+(>|$)/g, ''), // Usuń HTML tags
+                source: 'Wikipedia (EN)'
+            }));
+            console.log(`✅ English Wikipedia zwróciła ${results.length} wyników`);
+            return results;
+        }
+        
+        const results = response.data.query.search.map(item => ({
+            title: item.title,
+            snippet: item.snippet.replace(/<\/?[^>]+(>|$)/g, ''), // Usuń HTML tags
+            source: 'Wikipedia (PL)'
+        }));
+        
+        console.log(`✅ Polska Wikipedia zwróciła ${results.length} wyników`);
+        return results;
+    } catch (error) {
+        console.error('❌ Błąd Wikipedia:', error.message);
+        return [];
+    }
+}
+
 app.post('/chat', async (req, res) => {
     try {
         // 1. Ustawiamy nagłówki dla strumieniowania
@@ -65,11 +174,78 @@ app.post('/chat', async (req, res) => {
         session.history.push({ role: 'user', content: req.body.prompt });
         session.updatedAt = new Date().toISOString();
 
+        // Web Search - jeśli włączony
+        let webSearchContext = '';
+        if (req.body.webSearchEnabled === true) {
+            console.log('🔍 Web Search jest włączony, szukam wyników...');
+            let searchResults = [];
+            
+            // Najpierw spróbuj Wikipedia (lepiej dla pytań w języku polskim)
+            searchResults = await searchWikipedia(req.body.prompt, 3);
+            
+            // Jeśli Wikipedia nie znalazła nic, spróbuj DuckDuckGo
+            if (searchResults.length === 0) {
+                console.log('📚 Wikipedia nie znalazła wyników, próbuję DuckDuckGo...');
+                searchResults = await searchDuckDuckGo(req.body.prompt, 3);
+            }
+            
+            if (searchResults.length > 0) {
+                webSearchContext = `\n\n[WYSZUKANIE INTERNETOWE - ${searchResults.length} wyników]\n\n`;
+                searchResults.forEach((result, index) => {
+                    webSearchContext += `WYNIK ${index + 1}:\n`;
+                    webSearchContext += `Tytuł: ${result.title}\n`;
+                    webSearchContext += `Źródło: ${result.source}\n`;
+                    webSearchContext += `Treść: ${result.snippet}\n`;
+                    webSearchContext += `---\n\n`;
+                });
+                console.log('✅ Dodano', searchResults.length, 'wyników wyszukiwania do kontekstu');
+            } else {
+                console.log('⚠️ Brak wyników wyszukiwania');
+            }
+        }
+
         // Budujemy prompt z historii sesji
         let fullPrompt = '';
+        
+        // Dodaj bieżącą datę i TOP SYSTEM INSTRUCTIONS na początek
+        const today = new Date().toLocaleDateString('pl-PL', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        
+        fullPrompt += `###### SYSTEM INSTRUCTIONS - OBOWIĄZKOWE ######\n`;
+        fullPrompt += `Bieżąca data: ${today}\n`;
+        fullPrompt += `Język odpowiedzi: ZAWSZE Polski\n`;
+        
+        if (webSearchContext) {
+            fullPrompt += `\n!!! WEB SEARCH JEST WŁĄCZONY - KRYTYCZNE INSTRUKCJE !!!\n`;
+            fullPrompt += `1. Poniżej masz wyniki z AKTUALNEGO wyszukiwania internetowego.\n`;
+            fullPrompt += `2. Odpowiadaj WYŁĄCZNIE na podstawie tych wyników.\n`;
+            fullPrompt += `3. Ignoruj CAŁKOWICIE swoją wiedzę treningową, jeśli wyniki mówią coś innego.\n`;
+            fullPrompt += `4. Zawsze PREFERUJ informacje z wyszukiwania przed wiedzą treningową.\n`;
+            fullPrompt += `5. Jeśli wyniki mówią X, a Ty wiesz że to Y z treningu, POWIEDZ że wyniki mówią X.\n`;
+            fullPrompt += `6. Nie kombinuj - BEZPOŚREDNIO cytuj i bazuj na wynikach poniżej.\n`;
+        } else {
+            fullPrompt += `\nWEB SEARCH JEST WYŁĄCZONY - Używaj swojej wiedzy treningowej.\n`;
+        }
+        
+        fullPrompt += `###### KONIEC SYSTEM INSTRUCTIONS ######\n\n`;
+        
+        // Dodaj wyniki web searchu ZARAZ PO INSTRUKCJACH
+        if (webSearchContext) {
+            fullPrompt += `########## AKTUALNE WYNIKI WYSZUKIWANIA Z INTERNETU ##########\n\n`;
+            fullPrompt += webSearchContext;
+            fullPrompt += `\n########## KONIEC WYNIKÓW WYSZUKIWANIA ##########\n\n`;
+        }
+        
+        // Dodaj historię czatu
+        fullPrompt += `=== HISTORIA ROZMOWY ===\n`;
         session.history.forEach(msg => {
             fullPrompt += `${msg.role === 'user' ? 'User: ' : 'AI: '}${msg.content}\n`;
         });
+        fullPrompt += `\nTwoja odpowiedź (pamiętaj instrukcje powyżej):\n`;
 
         // 2. Prosimy Ollamę o stream (stream: true)
         const response = await axios({

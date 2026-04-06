@@ -468,6 +468,16 @@
             z-index: 1000;
         }
 
+        /* Checkbox Styling */
+        input[type="checkbox"] {
+            accent-color: #0077ff;
+            cursor: pointer;
+        }
+
+        input[type="checkbox"]:checked {
+            background: linear-gradient(45deg, #0055cc, #0077ff);
+        }
+
         body {
             display: flex;
             flex-direction: row;
@@ -813,6 +823,13 @@
                 </div>
                 <input type="range" id="topKSlider" min="0" max="100" step="1" value="40" oninput="updateParameter('topK', this.value)">
             </div>
+            <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(0, 85, 204, 0.2);">
+                <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; color: #0077ff; font-weight: 600;">
+                    <input type="checkbox" id="webSearchToggle" onchange="toggleWebSearch()" style="width: 18px; height: 18px; cursor: pointer;">
+                    🔍 Wyszukiwanie internetowe (DuckDuckGo)
+                    <span class="info-icon" data-tooltip="Użyj wyników wyszukiwania w internecie aby wzbogacić odpowiedzi"></span>
+                </label>
+            </div>
         </div>
                 </div>
             </div>
@@ -914,6 +931,9 @@
             topK: 40
         };
 
+        // Web Search settings
+        let webSearchEnabled = false;
+
         // Funkcja do aplikowania presetu
         function applyPreset(presetName) {
             const preset = presets[presetName];
@@ -947,6 +967,13 @@
             document.getElementById('tempValue').textContent = modelParams.temperature.toFixed(1);
             document.getElementById('topPValue').textContent = modelParams.topP.toFixed(2);
             document.getElementById('topKValue').textContent = Math.round(modelParams.topK);
+        }
+
+        // Funkcja do włączania/wyłączania web search
+        function toggleWebSearch() {
+            const toggle = document.getElementById('webSearchToggle');
+            webSearchEnabled = toggle.checked;
+            console.log('🔍 Web Search:', webSearchEnabled ? 'WŁĄCZONY' : 'WYŁĄCZONY');
         }
 
         // Funkcja do pobierania informacji o serwerze
@@ -1010,10 +1037,14 @@
             const requestBody = { 
                 prompt, 
                 sessionId: window.currentSessionId,
+                webSearchEnabled: webSearchEnabled,
                 ...modelParams 
             };
             
             console.log('📦 Request body:', requestBody);
+            if (webSearchEnabled) {
+                console.log('🔍 Web Search jest WŁĄCZONY - będę szukać w internecie');
+            }
 
             const response = await fetch('/chat', {
                 method: 'POST',
