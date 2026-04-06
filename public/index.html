@@ -92,6 +92,118 @@
             content: '⚙️';
         }
 
+        .memory-monitor {
+            background: rgba(5, 5, 5, 0.9);
+            border: 1px solid rgba(0, 85, 204, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .memory-monitor h3 {
+            color: #0055cc;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .memory-monitor h3::before {
+            content: '💾';
+        }
+
+        .memory-item {
+            margin-bottom: 15px;
+        }
+
+        .memory-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.9em;
+        }
+
+        .memory-label-name {
+            color: #0077ff;
+            font-weight: 600;
+        }
+
+        .memory-bar {
+            width: 100%;
+            height: 12px;
+            background: rgba(0, 85, 204, 0.1);
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 85, 204, 0.2);
+        }
+
+        .memory-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0077ff, #00d4ff);
+            transition: width 0.3s ease;
+        }
+
+        .memory-fill.high {
+            background: linear-gradient(90deg, #ff6b35, #ff0000);
+        }
+
+        .memory-fill.medium {
+            background: linear-gradient(90deg, #ffa500, #ff6b35);
+        }
+
+        .files-list {
+            background: rgba(5, 5, 5, 0.9);
+            border: 1px solid rgba(0, 85, 204, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .files-list h3 {
+            color: #0055cc;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .files-list h3::before {
+            content: '📁';
+        }
+
+        .file-item {
+            background: rgba(0, 85, 204, 0.05);
+            border-left: 3px solid #0077ff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9em;
+        }
+
+        .file-name {
+            color: #0077ff;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .file-size {
+            color: #aaa;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+
+        .no-files {
+            color: #888;
+            font-style: italic;
+            text-align: center;
+            padding: 15px;
+        }
+
         .info-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -399,6 +511,35 @@
                 </div>
             </div>
         </div>
+        <div class="memory-monitor">
+            <h3>Monitorowanie zasobów</h3>
+            <div class="memory-item">
+                <div class="memory-label">
+                    <span class="memory-label-name">Pamięć RAM</span>
+                    <span id="ramValue" style="color: #d0d0d0; font-family: 'Courier New', monospace;">0 / 0 MB (0%)</span>
+                </div>
+                <div class="memory-bar">
+                    <div class="memory-fill" id="ramFill" style="width: 0%;"></div>
+                </div>
+            </div>
+            <div class="memory-item">
+                <div class="memory-label">
+                    <span class="memory-label-name">Pamięć GPU (VRAM)</span>
+                    <span id="gpuValue" style="color: #d0d0d0; font-family: 'Courier New', monospace;">Niedostępne</span>
+                </div>
+                <div class="memory-bar">
+                    <div class="memory-fill" id="gpuFill" style="width: 0%;"></div>
+                </div>
+            </div>
+            <div style="margin-top: 10px; font-size: 0.85em; color: #888;">
+                <strong>Wiadomości:</strong> <span id="contextSize">0</span> | 
+                <strong>Pliki:</strong> <span id="fileCount">0</span>
+            </div>
+        </div>
+        <div class="files-list">
+            <h3>Przesłane pliki</h3>
+            <div id="filesList" class="no-files">Brak przesłanych plików</div>
+        </div>
         <div class="model-params">
             <h3>Parametry modelu</h3>
             <div class="preset-buttons">
@@ -450,6 +591,56 @@
     </div>
 
     <script>
+        // Funkcja do aktualizacji monitorowania pamięci
+        async function updateMemoryMonitor() {
+            try {
+                const response = await fetch('/api/memory');
+                const data = await response.json();
+                
+                // Aktualizuj RAM
+                const ramPercent = data.ram.percent;
+                const ramFill = document.getElementById('ramFill');
+                ramFill.style.width = ramPercent + '%';
+                ramFill.className = 'memory-fill';
+                if (ramPercent > 80) ramFill.classList.add('high');
+                else if (ramPercent > 60) ramFill.classList.add('medium');
+                document.getElementById('ramValue').textContent = `${data.ram.used} / ${data.ram.total} MB (${ramPercent}%)`;
+                
+                // Aktualizuj GPU
+                if (data.gpu.available) {
+                    const gpuPercent = parseFloat(data.gpu.percent);
+                    const gpuFill = document.getElementById('gpuFill');
+                    gpuFill.style.width = gpuPercent + '%';
+                    gpuFill.className = 'memory-fill';
+                    if (gpuPercent > 80) gpuFill.classList.add('high');
+                    else if (gpuPercent > 60) gpuFill.classList.add('medium');
+                    document.getElementById('gpuValue').textContent = `${data.gpu.used} / ${data.gpu.total} MB (${gpuPercent}%)`;
+                }
+                
+                // Aktualizuj listę plików
+                document.getElementById('contextSize').textContent = data.contextSize;
+                document.getElementById('fileCount').textContent = data.uploadedFiles.length;
+                
+                const filesList = document.getElementById('filesList');
+                if (data.uploadedFiles.length === 0) {
+                    filesList.innerHTML = '<div class="no-files">Brak przesłanych plików</div>';
+                } else {
+                    filesList.innerHTML = data.uploadedFiles.map(file => `
+                        <div class="file-item">
+                            <span class="file-name">${file.name}</span>
+                            <span class="file-size">${(file.size / 1024).toFixed(2)} KB</span>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Błąd podczas pobierania danych pamięci:', error);
+            }
+        }
+        
+        // Aktualizuj pamięć co 2 sekundy
+        setInterval(updateMemoryMonitor, 2000);
+        updateMemoryMonitor(); // Pierwsze uruchomienie
+
         // Obsługa klawisza Enter
         document.addEventListener('DOMContentLoaded', function() {
             const userInput = document.getElementById('userInput');

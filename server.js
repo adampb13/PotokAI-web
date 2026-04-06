@@ -14,6 +14,7 @@ app.use(express.static('public')); // Tu będą pliki strony WWW
 
 // Przechowywanie kontekstu rozmowy (prosta implementacja dla jednej karty)
 let conversationHistory = [];
+let uploadedFiles = []; // Śledzenie przesłanych plików
 
 // Konfiguracja multer dla uploadu plików
 const upload = multer({ dest: 'uploads/' });
@@ -93,6 +94,13 @@ app.post('/upload', upload.single('file'), (req, res) => {
 
         // Dodajemy zawartość pliku do kontekstu
         conversationHistory.push({ role: 'system', content: `Uploaded file content:\n${data}` });
+        
+        // Dodajemy informację o pliku do listy przesłanych plików
+        uploadedFiles.push({
+            name: req.file.originalname,
+            size: req.file.size,
+            uploadTime: new Date().toISOString()
+        });
 
         // Usuwamy tymczasowy plik
         fs.unlink(req.file.path, (err) => {
@@ -106,6 +114,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
 // Endpoint do resetowania kontekstu
 app.post('/reset', (req, res) => {
     conversationHistory = [];
+    uploadedFiles = [];
     res.send('Context reset.');
 });
 
@@ -117,6 +126,55 @@ app.get('/api/info', (req, res) => {
         version: '1.0.0',
         timestamp: new Date().toISOString()
     });
+});
+
+// Endpoint do monitorowania pamięci
+app.get('/api/memory', (req, res) => {
+    const os = require('os');
+    const util = require('util');
+    const exec = util.promisify(require('child_process').exec);
+
+    // RAM memory
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const usedMem = totalMem - freeMem;
+    const ramPercent = ((usedMem / totalMem) * 100).toFixed(2);
+
+    // VRAM monitoring
+    let gpuInfo = { available: false, used: 0, total: 0, percent: 0 };
+
+    // Spróbuj pobrać informacje o GPU (nvidia-smi jeśli dostępne)
+    exec('nvidia-smi --query-gpu=memory.used,memory.total --format=csv,nounits,noheader')
+        .then(({ stdout }) => {
+            const lines = stdout.trim().split('\n');
+            if (lines.length > 0) {
+                const [used, total] = lines[0].split(',').map(x => parseInt(x.trim()));
+                gpuInfo = {
+                    available: true,
+                    used: used,
+                    total: total,
+                    percent: ((used / total) * 100).toFixed(2)
+                };
+            }
+            sendResponse();
+        })
+        .catch(() => {
+            // GPU nie dostępne
+            sendResponse();
+        });
+
+    function sendResponse() {
+        res.json({
+            ram: {
+                used: (usedMem / (1024 * 1024)).toFixed(2),
+                total: (totalMem / (1024 * 1024)).toFixed(2),
+                percent: parseFloat(ramPercent)
+            },
+            gpu: gpuInfo,
+            uploadedFiles: uploadedFiles,
+            contextSize: conversationHistory.length
+        });
+    }
 });
 
 app.listen(3000, '0.0.0.0', () => console.log("Serwer: http://localhost:3000"));
