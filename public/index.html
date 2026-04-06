@@ -205,6 +205,154 @@
             box-shadow: 0 6px 25px rgba(255, 0, 77, 0.5);
         }
 
+        .model-params {
+            background: rgba(5, 5, 5, 0.9);
+            border: 1px solid rgba(0, 85, 204, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .model-params h3 {
+            color: #0055cc;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .model-params h3::before {
+            content: '🎛️';
+        }
+
+        .preset-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .preset-btn {
+            padding: 10px 15px;
+            background: rgba(0, 85, 204, 0.2);
+            border: 1px solid rgba(0, 85, 204, 0.4);
+            color: #0077ff;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .preset-btn:hover {
+            background: rgba(0, 85, 204, 0.4);
+            border-color: #0077ff;
+        }
+
+        .preset-btn.active {
+            background: linear-gradient(45deg, #0055cc, #0077ff);
+            border-color: #0077ff;
+        }
+
+        .slider-group {
+            margin-bottom: 15px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            color: #0077ff;
+        }
+
+        .slider-label-name {
+            font-weight: 600;
+        }
+
+        .slider-label-value {
+            color: #d0d0d0;
+            font-family: 'Courier New', monospace;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(0, 85, 204, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #0055cc, #0077ff);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 119, 255, 0.4);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #0055cc, #0077ff);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(0, 119, 255, 0.4);
+        }
+
+        .info-icon {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: rgba(0, 119, 255, 0.3);
+            border: 1px solid #0077ff;
+            color: #0077ff;
+            text-align: center;
+            line-height: 16px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: help;
+            margin-left: 8px;
+            position: relative;
+            vertical-align: middle;
+        }
+
+        .info-icon:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: #0077ff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 400;
+            white-space: nowrap;
+            z-index: 1000;
+            border: 1px solid rgba(0, 119, 255, 0.4);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+        }
+
+        .info-icon:hover::before {
+            content: '';
+            position: absolute;
+            bottom: 115%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
@@ -248,9 +396,47 @@
                 </div>
             </div>
         </div>
+        <div class="model-params">
+            <h3>Parametry modelu</h3>
+            <div class="preset-buttons">
+                <button class="preset-btn active" onclick="applyPreset('precise')">📍 Precyzyjny</button>
+                <button class="preset-btn" onclick="applyPreset('balanced')">⚖️ Zbalansowany</button>
+                <button class="preset-btn" onclick="applyPreset('creative')">✨ Kreatywny</button>
+            </div>
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span class="slider-label-name">
+                        Temperatura
+                        <span class="info-icon" data-tooltip="Zwiększa losowość odpowiedzi (0=deterministyczne, 2=chaotyczne)"></span>
+                    </span>
+                    <span class="slider-label-value" id="tempValue">0.1</span>
+                </div>
+                <input type="range" id="tempSlider" min="0" max="2" step="0.1" value="0.1" oninput="updateParameter('temperature', this.value)">
+            </div>
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span class="slider-label-name">
+                        Top P (Nucleus)
+                        <span class="info-icon" data-tooltip="Wybiera tokeny aż do P% prawdopodobieństwa (0.9=skupione)"></span>
+                    </span>
+                    <span class="slider-label-value" id="topPValue">0.9</span>
+                </div>
+                <input type="range" id="topPSlider" min="0" max="1" step="0.05" value="0.9" oninput="updateParameter('topP', this.value)">
+            </div>
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span class="slider-label-name">
+                        Top K
+                        <span class="info-icon" data-tooltip="Ogranicza wybór do K najbardziej prawdopodobnych słów"></span>
+                    </span>
+                    <span class="slider-label-value" id="topKValue">40</span>
+                </div>
+                <input type="range" id="topKSlider" min="0" max="100" step="1" value="40" oninput="updateParameter('topK', this.value)">
+            </div>
+        </div>
         <div id="chat"></div>
         <div class="input-group">
-            <input type="text" id="userInput" placeholder="Zapytaj o kod...">
+            <input type="text" id="userInput" placeholder="Wyślij zapytanie do AI...">
             <button onclick="askAI()">Wyślij</button>
         </div>
         <div class="file-group">
@@ -261,6 +447,55 @@
     </div>
 
     <script>
+        // Presets dla parametrów modelu
+        const presets = {
+            precise: { temperature: 0.1, topP: 0.9, topK: 40 },
+            balanced: { temperature: 0.5, topP: 0.9, topK: 50 },
+            creative: { temperature: 1.2, topP: 0.95, topK: 70 }
+        };
+
+        // Aktualnie ustawione parametry
+        let modelParams = {
+            temperature: 0.1,
+            topP: 0.9,
+            topK: 40
+        };
+
+        // Funkcja do aplikowania presetu
+        function applyPreset(presetName) {
+            const preset = presets[presetName];
+            if (!preset) return;
+
+            // Aktualizuj suwaki
+            document.getElementById('tempSlider').value = preset.temperature;
+            document.getElementById('topPSlider').value = preset.topP;
+            document.getElementById('topKSlider').value = preset.topK;
+
+            // Aktualizuj wartości parametrów
+            modelParams = { ...preset };
+            updateParameterDisplay();
+
+            // Aktualizuj visually aktywny preset
+            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        // Funkcja do aktualizacji parametru
+        function updateParameter(paramName, value) {
+            const numValue = parseFloat(value);
+            modelParams[paramName] = numValue;
+            updateParameterDisplay();
+            // Usuń aktywny preset bo teraz mamy custom wartości
+            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+        }
+
+        // Funkcja do aktualizacji wyświetlania wartości
+        function updateParameterDisplay() {
+            document.getElementById('tempValue').textContent = modelParams.temperature.toFixed(1);
+            document.getElementById('topPValue').textContent = modelParams.topP.toFixed(2);
+            document.getElementById('topKValue').textContent = Math.round(modelParams.topK);
+        }
+
         // Funkcja do pobierania informacji o serwerze
         async function loadServerInfo() {
             try {
@@ -294,7 +529,7 @@
             const response = await fetch('/chat', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ prompt })
+                body: JSON.stringify({ prompt, ...modelParams })
             });
 
             // Czytamy strumień danych
