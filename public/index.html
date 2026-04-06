@@ -468,9 +468,165 @@
             z-index: 1000;
         }
 
+        body {
+            display: flex;
+            flex-direction: row;
+            justify-content: stretch;
+            align-items: stretch;
+            min-height: 100vh;
+            padding: 0;
+            gap: 0;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: rgba(5, 5, 5, 0.98);
+            border-right: 1px solid rgba(0, 85, 204, 0.2);
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            padding-top: 20px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .sidebar-header {
+            padding: 0 20px 20px 20px;
+            border-bottom: 1px solid rgba(0, 85, 204, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .sidebar-header h2 {
+            color: #0077ff;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .new-chat-btn {
+            width: calc(100% - 40px);
+            padding: 12px;
+            margin: 0 20px;
+            background: linear-gradient(45deg, #0055cc, #0077ff);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .new-chat-btn:hover {
+            box-shadow: 0 4px 12px rgba(0, 119, 255, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .chats-list {
+            flex: 1;
+            padding: 0 10px;
+            overflow-y: auto;
+        }
+
+        .chat-item {
+            padding: 12px 15px;
+            margin: 5px 0;
+            background: rgba(0, 85, 204, 0.05);
+            border-left: 3px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9em;
+            color: #d0d0d0;
+            position: relative;
+        }
+
+        .chat-item:hover {
+            background: rgba(0, 85, 204, 0.15);
+            border-left-color: #0077ff;
+        }
+
+        .chat-item.active {
+            background: rgba(0, 85, 204, 0.3);
+            border-left-color: #0077ff;
+            color: #0077ff;
+            font-weight: 600;
+        }
+
+        .chat-item-name {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-item-meta {
+            font-size: 0.75em;
+            color: #888;
+            white-space: nowrap;
+        }
+
+        .chat-item-delete {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 0, 77, 0.1);
+            border: 1px solid rgba(255, 0, 77, 0.3);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #ff004d;
+            font-size: 12px;
+            opacity: 0;
+        }
+
+        .chat-item:hover .chat-item-delete {
+            opacity: 1;
+        }
+
+        .chat-item-delete:hover {
+            background: rgba(255, 0, 77, 0.3);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(135deg, #000000, #0a0a0a);
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .container {
+            max-width: none;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border-radius: 0;
+            box-shadow: none;
+            padding: 0;
+            border: none;
+            display: flex;
+            flex-direction: column;
+            padding: 20px 30px;
+        }
+
         @media (max-width: 768px) {
+            .sidebar {
+                width: 200px;
+                padding-top: 15px;
+            }
+
             .container {
-                padding: 20px;
+                padding: 15px 20px;
             }
 
             h1 {
@@ -489,14 +645,94 @@
                 width: 100%;
             }
         }
+
+        /* Accordion/Collapsible Sections */
+        .section-toggle {
+            background: transparent;
+            border: none;
+            color: #0055cc;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 1.1em;
+            width: calc(100% + 40px);
+            padding: 15px 20px;
+            margin: 0 -20px 15px -20px;
+            border-bottom: 1px solid rgba(0, 85, 204, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .section-toggle:hover {
+            background: rgba(0, 85, 204, 0.1);
+        }
+
+        .section-toggle::before {
+            content: '▼';
+            display: inline-block;
+            transition: transform 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .section-toggle.collapsed::before {
+            transform: rotate(-90deg);
+        }
+
+        .section-content {
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease, margin-bottom 0.3s ease;
+            margin-bottom: 15px;
+        }
+
+        .section-content.collapsed {
+            max-height: 0;
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 600px) {
+            .sidebar {
+                width: 150px;
+            }
+
+            .sidebar-header h2 {
+                font-size: 1em;
+            }
+
+            .new-chat-btn {
+                font-size: 12px;
+                padding: 10px;
+            }
+
+            .chat-item {
+                padding: 10px 12px;
+                font-size: 0.85em;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🌊 PotokAI</h1>
-        <div class="dev-tools">
-            <h3>Informacje systemowe</h3>
-            <div class="info-grid">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>🌊 PotokAI</h2>
+            <button class="new-chat-btn" onclick="createNewChat()">+ Nowy czat</button>
+        </div>
+        <div class="chats-list" id="chatsList"></div>
+    </div>
+
+    <div class="main-content">
+        <div class="container">
+            <h1>💬 Chat</h1>
+            
+            <!-- Collapsible Settings Section -->
+            <div style="margin-bottom: 20px;">
+                <button class="section-toggle" onclick="toggleSection(this)">⚙️ Ustawienia i monitorowanie</button>
+                <div class="section-content">
+                    <!-- Dev Tools -->
+                    <div class="dev-tools">
+                        <h3>Informacje systemowe</h3>
+                        <div class="info-grid">
                 <div class="info-item">
                     <div class="info-item-label">Status serwera</div>
                     <div class="info-item-value"><span class="status-indicator"></span><span id="serverStatus">Łączenie...</span></div>
@@ -578,6 +814,9 @@
                 <input type="range" id="topKSlider" min="0" max="100" step="1" value="40" oninput="updateParameter('topK', this.value)">
             </div>
         </div>
+                </div>
+            </div>
+
         <div id="chat"></div>
         <div class="input-group">
             <input type="text" id="userInput" placeholder="Wyślij zapytanie do AI...">
@@ -589,12 +828,18 @@
             <button onclick="resetContext()" class="reset-btn">Resetuj kontekst</button>
         </div>
     </div>
+    </div>
+    </div>
 
     <script>
-        // Funkcja do aktualizacji monitorowania pamięci
+        console.log('🔥 SKRYPT STARTUJE');
+        console.log('📄 document.readyState:', document.readyState);
+        
+        // Funkcja do pobierania informacji o monitorowaniu pamięci
         async function updateMemoryMonitor() {
             try {
-                const response = await fetch('/api/memory');
+                const params = window.currentSessionId ? `?sessionId=${window.currentSessionId}` : '';
+                const response = await fetch(`/api/memory${params}`);
                 const data = await response.json();
                 
                 // Aktualizuj RAM
@@ -725,20 +970,55 @@
             const chat = document.getElementById('chat');
             const prompt = input.value;
 
+            console.log('🔍 askAI() uruchomiona, window.currentSessionId =', window.currentSessionId);
+            console.log('🔍 window.chatsLoaded =', window.chatsLoaded);
+            console.log('🔍 window.chatSessions =', window.chatSessions);
+
+            // Czekaj aż czaty się załadują
+            if (!window.chatsLoaded) {
+                console.warn('⏳ Czekam na załadowanie czatów...');
+                let attempts = 0;
+                while (!window.chatsLoaded && attempts < 50) {
+                    await new Promise(r => setTimeout(r, 100));
+                    attempts++;
+                }
+                if (!window.chatsLoaded) {
+                    console.error('❌ Timeout: czaty się nie załadowały');
+                    alert('Czaty się nie załadowały. Odśwież stronę.');
+                    return;
+                }
+            }
+
             if (!prompt.trim()) return;
+            if (!window.currentSessionId) {
+                console.error('❌ BŁĄD: window.currentSessionId jest niezdefiniowany!');
+                console.error('💾 Stan: chatsLoaded=', window.chatsLoaded, 'chatSessions=', window.chatSessions);
+                alert('Utwórz lub wybierz czat');
+                return;
+            }
+
+            console.log('📤 Wysyłam wiadomość do sessionId:', window.currentSessionId);
 
             chat.innerHTML += `<p><b>Ty:</b> ${prompt}</p>`;
             const aiMessageP = document.createElement('p');
             aiMessageP.innerHTML = "<b>AI:</b> ";
-            aiMessageP.id = 'ai-message-' + Date.now(); // Unikalne ID dla wiadomości
+            aiMessageP.id = 'ai-message-' + Date.now();
             chat.appendChild(aiMessageP);
 
             input.value = '';
 
+            const requestBody = { 
+                prompt, 
+                sessionId: window.currentSessionId,
+                ...modelParams 
+            };
+            
+            console.log('📦 Request body:', requestBody);
+
             const response = await fetch('/chat', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ prompt, ...modelParams })
+                body: JSON.stringify(requestBody)
             });
 
             // Czytamy strumień danych
@@ -776,11 +1056,15 @@
                 alert('Wybierz plik.');
                 return;
             }
+            if (!window.currentSessionId) {
+                alert('Utwórz lub wybierz czat');
+                return;
+            }
 
             const formData = new FormData();
             formData.append('file', file);
 
-            const response = await fetch('/upload', {
+            const response = await fetch(`/upload?sessionId=${window.currentSessionId}`, {
                 method: 'POST',
                 body: formData
             });
@@ -788,15 +1072,176 @@
             const result = await response.text();
             alert(result);
             fileInput.value = '';
+            updateMemoryMonitor();
         }
 
         async function resetContext() {
             const response = await fetch('/reset', {
-                method: 'POST'
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ sessionId: window.currentSessionId })
             });
             const result = await response.text();
             alert(result);
             document.getElementById('chat').innerHTML = '';
+        }
+
+        // ============ CHAT SESSION MANAGEMENT ============
+
+        window.currentSessionId = null;
+        window.chatSessions = [];
+        window.chatsLoaded = false;
+        window.initializing = false;
+
+        async function loadChats() {
+            try {
+                console.log('📂 Ładuję listę czatów...');
+                const response = await fetch('/api/chats');
+                window.chatSessions = await response.json();
+                console.log('✅ Załadowano czaty:', window.chatSessions);
+                console.log('🔍 window.chatSessions.length:', window.chatSessions.length);
+                
+                renderChatsList();
+                
+                // Jeśli nie ma żadnych czatów, utwórz początkowy
+                if (window.chatSessions.length === 0) {
+                    console.log('📝 Brak czatów, tworzę początkowy...');
+                    await createNewChat();
+                    console.log('✅ Czat początkowy utworzony, currentSessionId:', window.currentSessionId);
+                } else if (window.chatSessions.length > 0 && !window.currentSessionId) {
+                    // Jeśli są czaty ale żaden nie jest wybrany, wybierz pierwszy
+                    const firstChatId = window.chatSessions[0].id;
+                    console.log('👉 Są czaty, przełączam na pierwszy:', firstChatId);
+                    await switchChat(firstChatId);
+                    console.log('✔️ Czat załadowany, currentSessionId teraz to:', window.currentSessionId);
+                }
+                
+                // Ostateczna weryfikacja
+                if (!window.currentSessionId) {
+                    console.error('❌❌❌ KRYTYCZNY BŁĄD: currentSessionId jest NADAL undefined po loadChats!');
+                } else {
+                    console.log('✅✅✅ OK: currentSessionId jest:', window.currentSessionId);
+                }
+                
+                window.chatsLoaded = true;
+                console.log('🎉 Czaty są załadowane!');
+            } catch (error) {
+                console.error('❌ Błąd podczas ładowania czatów:', error);
+                window.chatsLoaded = true; // Ustaw flagę nawet jeśli błąd
+            }
+        }
+
+        function renderChatsList() {
+            const chatsList = document.getElementById('chatsList');
+            if (window.chatSessions.length === 0) {
+                chatsList.innerHTML = '<div style="padding: 20px 15px; color: #888; text-align: center; font-size: 0.9em;">Brak czatów. Utwórz nowy czat!</div>';
+                return;
+            }
+
+            chatsList.innerHTML = window.chatSessions.map(chat => `
+                <div class="chat-item ${chat.id === window.currentSessionId ? 'active' : ''}" onclick="switchChat('${chat.id}')">
+                    <div>
+                        <div class="chat-item-name">${chat.name}</div>
+                        <div class="chat-item-meta">${chat.messageCount} wiad.</div>
+                    </div>
+                    <div class="chat-item-delete" onclick="event.stopPropagation(); deleteChat('${chat.id}')">✕</div>
+                </div>
+            `).join('');
+        }
+
+        async function createNewChat() {
+            console.log('📝 Tworzę nowy czat...');
+            const response = await fetch('/api/chats/new', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ name: `Czat ${new Date().toLocaleTimeString('pl-PL', {hour: '2-digit', minute:'2-digit'})}` })
+            });
+            const newChat = await response.json();
+            console.log('✅ Nowy czat utworzony:', newChat);
+            console.log('📌 Przed switchChat - window.currentSessionId:', window.currentSessionId);
+            window.chatSessions.push(newChat);
+            await switchChat(newChat.id);
+            console.log('✔️ Po switchChat - window.currentSessionId:', window.currentSessionId);
+            renderChatsList();
+        }
+
+        async function switchChat(sessionId) {
+            console.log('🔄 Przełączam na czat:', sessionId);
+            window.currentSessionId = sessionId;
+            console.log('💾 Ustawiono window.currentSessionId:', window.currentSessionId);
+            
+            // Załaduj historię czatu
+            try {
+                const response = await fetch(`/api/chats/${sessionId}`);
+                const chatData = await response.json();
+                console.log('📋 Załadowana historia czatu:', chatData);
+                
+                document.getElementById('chat').innerHTML = '';
+                chatData.history.forEach(msg => {
+                    const chat = document.getElementById('chat');
+                    if (msg.role === 'user') {
+                        chat.innerHTML += `<p><b>Ty:</b> ${msg.content}</p>`;
+                    } else {
+                        chat.innerHTML += `<p><b>AI:</b> ${msg.content}</p>`;
+                    }
+                });
+                
+                document.getElementById('chat').scrollTop = document.getElementById('chat').scrollHeight;
+            } catch (error) {
+                console.error('❌ Błąd podczas ładowania czatu:', error);
+            }
+
+            console.log('🔚 switchChat kończy, window.currentSessionId =', window.currentSessionId);
+            renderChatsList();
+            updateMemoryMonitor();
+        }
+
+        async function deleteChat(sessionId) {
+            if (!confirm('Czy na pewno usunąć ten czat?')) return;
+            
+            try {
+                await fetch(`/api/chats/${sessionId}`, { method: 'DELETE' });
+                window.chatSessions = window.chatSessions.filter(c => c.id !== sessionId);
+                if (window.currentSessionId === sessionId) {
+                    window.currentSessionId = null;
+                }
+                renderChatsList();
+                if (window.chatSessions.length > 0) {
+                    switchChat(window.chatSessions[0].id);
+                }
+            } catch (error) {
+                console.error('Błąd podczas usuwania czatu:', error);
+            }
+        }
+
+        // Załaduj czaty przy starcie (obsługa dla load i DOMContentLoaded)
+        async function initializeChats() {
+            if (window.initializing) {
+                console.log('⚠️ Inicjalizacja już w toku, pomijam duplikat');
+                return;
+            }
+            window.initializing = true;
+            console.log('⏱️ Inicjalizacja czatów...');
+            console.log('📄 document.readyState:', document.readyState);
+            await loadChats();
+            console.log('⏱️ Inicjalizacja czatów zakończona, chatsLoaded:', window.chatsLoaded);
+        }
+        
+        console.log('🚀 Skrypt się załadował, document.readyState:', document.readyState);
+        
+        if (document.readyState === 'loading') {
+            console.log('📖 DOM się wciąż ładuje, czekam na DOMContentLoaded');
+            document.addEventListener('DOMContentLoaded', initializeChats);
+        } else {
+            console.log('✅ DOM już załadowany, uruchamiam zaraz');
+            initializeChats();
+        }
+
+        // Toggle collapsible sections
+        function toggleSection(button) {
+            const content = button.nextElementSibling;
+            button.classList.toggle('collapsed');
+            content.classList.toggle('collapsed');
         }
     </script>
 </body>

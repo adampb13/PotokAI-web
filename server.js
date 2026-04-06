@@ -12,9 +12,29 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public')); // Tu będą pliki strony WWW
 
-// Przechowywanie kontekstu rozmowy (prosta implementacja dla jednej karty)
-let conversationHistory = [];
-let uploadedFiles = []; // Śledzenie przesłanych plików
+// Przechowywanie sesji czatów
+let chatSessions = {}; // { sessionId: { history: [], files: [], name: '', createdAt: '' } }
+let uploadedFiles = []; // Śledzenie przesłanych plików (deprecated - kept for compatibility)
+
+// Funkcja do generowania ID sesji
+function generateSessionId() {
+    return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+// Funkcja do tworzenia nowej sesji
+function createSession(name = null) {
+    const sessionId = generateSessionId();
+    const sessionName = name || `Chat ${new Date().toLocaleString('pl-PL')}`;
+    chatSessions[sessionId] = {
+        id: sessionId,
+        name: sessionName,
+        history: [],
+        files: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    };
+    return sessionId;
+}
 
 // Konfiguracja multer dla uploadu plików
 const upload = multer({ dest: 'uploads/' });
@@ -26,12 +46,28 @@ app.post('/chat', async (req, res) => {
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
 
-        // Dodajemy wiadomość użytkownika do historii
-        conversationHistory.push({ role: 'user', content: req.body.prompt });
+        // Pobieramy lub tworzymy sesję
+        let sessionId = req.body.sessionId;
+        console.log('📨 Otrzymano request, sessionId z body:', sessionId);
+        console.log('🔍 Dostępne sesje:', Object.keys(chatSessions));
+        
+        if (!sessionId || !chatSessions[sessionId]) {
+            console.log('⚠️ SessionId nie znaleziony, tworząc nową sesję');
+            sessionId = createSession();
+        } else {
+            console.log('✅ SessionId znaleziony, używam istniejący');
+        }
+        
+        const session = chatSessions[sessionId];
+        console.log('📌 Pracuję z sesją:', sessionId);
 
-        // Budujemy prompt z historii
+        // Dodajemy wiadomość użytkownika do historii sesji
+        session.history.push({ role: 'user', content: req.body.prompt });
+        session.updatedAt = new Date().toISOString();
+
+        // Budujemy prompt z historii sesji
         let fullPrompt = '';
-        conversationHistory.forEach(msg => {
+        session.history.forEach(msg => {
             fullPrompt += `${msg.role === 'user' ? 'User: ' : 'AI: '}${msg.content}\n`;
         });
 
@@ -69,8 +105,9 @@ app.post('/chat', async (req, res) => {
         });
 
         response.data.on('end', () => {
-            // Dodajemy odpowiedź AI do historii
-            conversationHistory.push({ role: 'assistant', content: aiResponse });
+            // Dodajemy odpowiedź AI do historii sesji
+            session.history.push({ role: 'assistant', content: aiResponse });
+            session.updatedAt = new Date().toISOString();
             res.end();
         });
 
@@ -86,17 +123,25 @@ app.post('/upload', upload.single('file'), (req, res) => {
         return res.status(400).send('No file uploaded.');
     }
 
+    // Pobieramy lub tworzymy sesję
+    let sessionId = req.query.sessionId || req.body.sessionId;
+    if (!sessionId || !chatSessions[sessionId]) {
+        sessionId = createSession();
+    }
+    
+    const session = chatSessions[sessionId];
+
     // Czytamy zawartość pliku (zakładamy tekst)
     fs.readFile(req.file.path, 'utf8', (err, data) => {
         if (err) {
             return res.status(500).send('Error reading file.');
         }
 
-        // Dodajemy zawartość pliku do kontekstu
-        conversationHistory.push({ role: 'system', content: `Uploaded file content:\n${data}` });
+        // Dodajemy zawartość pliku do kontekstu sesji
+        session.history.push({ role: 'system', content: `Uploaded file content:\n${data}` });
         
-        // Dodajemy informację o pliku do listy przesłanych plików
-        uploadedFiles.push({
+        // Dodajemy informację o pliku do listy przesłanych plików sesji
+        session.files.push({
             name: req.file.originalname,
             size: req.file.size,
             uploadTime: new Date().toISOString()
@@ -111,11 +156,64 @@ app.post('/upload', upload.single('file'), (req, res) => {
     });
 });
 
-// Endpoint do resetowania kontekstu
+// Endpoint do resetowania kontekstu sesji
 app.post('/reset', (req, res) => {
-    conversationHistory = [];
-    uploadedFiles = [];
+    const sessionId = req.body.sessionId;
+    if (sessionId && chatSessions[sessionId]) {
+        chatSessions[sessionId].history = [];
+        chatSessions[sessionId].files = [];
+        chatSessions[sessionId].updatedAt = new Date().toISOString();
+    }
     res.send('Context reset.');
+});
+
+// Endpoint do tworzenia nowego czatu
+app.post('/api/chats/new', (req, res) => {
+    const sessionId = createSession(req.body.name || null);
+    const session = chatSessions[sessionId];
+    console.log('✅ POST /api/chats/new - utworzono sesję:', sessionId, 'name:', session.name);
+    res.json({
+        id: session.id,
+        name: session.name,
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt,
+        messageCount: session.history.length,
+        fileCount: session.files.length
+    });
+});
+
+// Endpoint do pobrania listy czatów
+app.get('/api/chats', (req, res) => {
+    const chatsList = Object.values(chatSessions).map(session => ({
+        id: session.id,
+        name: session.name,
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt,
+        messageCount: session.history.length,
+        fileCount: session.files.length
+    }));
+    res.json(chatsList);
+});
+
+// Endpoint do usuwania czatu
+app.delete('/api/chats/:sessionId', (req, res) => {
+    const sessionId = req.params.sessionId;
+    if (chatSessions[sessionId]) {
+        delete chatSessions[sessionId];
+        res.json({ success: true, message: 'Chat deleted.' });
+    } else {
+        res.status(404).json({ success: false, message: 'Chat not found.' });
+    }
+});
+
+// Endpoint do pobrania sesji
+app.get('/api/chats/:sessionId', (req, res) => {
+    const sessionId = req.params.sessionId;
+    if (chatSessions[sessionId]) {
+        res.json(chatSessions[sessionId]);
+    } else {
+        res.status(404).json({ error: 'Chat not found.' });
+    }
 });
 
 // Endpoint do zwracania informacji o serwerze
@@ -164,6 +262,10 @@ app.get('/api/memory', (req, res) => {
         });
 
     function sendResponse() {
+        // Pobieramy sessionId z query params
+        const sessionId = req.query.sessionId;
+        const session = chatSessions[sessionId] || { history: [], files: [] };
+
         res.json({
             ram: {
                 used: (usedMem / (1024 * 1024)).toFixed(2),
@@ -171,8 +273,8 @@ app.get('/api/memory', (req, res) => {
                 percent: parseFloat(ramPercent)
             },
             gpu: gpuInfo,
-            uploadedFiles: uploadedFiles,
-            contextSize: conversationHistory.length
+            uploadedFiles: session.files,
+            contextSize: session.history.length
         });
     }
 });
