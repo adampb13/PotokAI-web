@@ -29,6 +29,7 @@ Telemetria systemowa: Endpointy działające w tle, monitorujące zużycie pami�
 Strojenie parametrów generacji: Konfigurowalne w czasie rzeczywistym parametry generacji tekstu, w tym temperatura, Top P oraz Top K.
 
 ### Wymagania Wstępne
+
 Node.js (wersja 18 lub nowsza)
 
 Ollama zainstalowana i uruchomiona lokalnie (ollama serve)
@@ -36,12 +37,15 @@ Ollama zainstalowana i uruchomiona lokalnie (ollama serve)
 Karta graficzna NVIDIA (opcjonalnie, zalecana do przyspieszenia generacji tokenów przez CUDA)
 
 ### Instalacja i Konfiguracja
+
 Przejdź do katalogu projektu:
 
 cd PotokAI
+
 Zainstaluj zależności Node.js:
 
 npm install
+
 Zweryfikuj ustawienia w pliku konfiguracyjnym (config.json):
 
 JSON
@@ -52,15 +56,19 @@ JSON
 Upewnij się, że lokalny demon Ollama jest aktywny, i pobierz model:
 
 ollama pull qwen2.5-coder:7b
-Uruchamianie Aplikacji
+
+### Uruchamianie Aplikacji
+
 Uruchom serwer Express za pomocą środowiska Node.js:
 
 node server.js
+
 Po uruchomieniu serwera otwórz interfejs użytkownika w przeglądarce pod adresem:
 http://localhost:3000
 
 ### Endpointy API
 POST /chat
+
 Wysyła zapytanie i parametry generacji do aktywnego modelu.
 
 Payload: {"prompt": "string", "temperature": float, "topP": float, "topK": int}
@@ -68,15 +76,19 @@ Payload: {"prompt": "string", "temperature": float, "topP": float, "topK": int}
 Odpowiedź: Strumień tekstowy w formacie Server-Sent Events (SSE).
 
 POST /upload
+
 Przesyła dokument referencyjny w celu dołączenia go do aktywnego okna kontekstu.
 
 Payload: FormData zawierający docelowy plik (file).
 
 POST /reset
+
 Czyści aktywną historię wiadomości oraz usuwa tymczasowe pliki kontekstowe.
 
 GET /api/info
+
 Zwraca ogólny status serwera oraz konfigurację aktywnego modelu.
 
 GET /api/memory
+
 Pobiera aktualne dane telemetryczne dotyczące zużycia pamięci RAM, dostępnego VRAM oraz licznik elementów w aktywnej sesji kontekstowej.
